@@ -71,14 +71,17 @@ class Repo:
 #find difference in time
     def time_difference(self, first, second):
         dif = second - first
-        hours = (dif/60)/60
+        # hours = (dif.seconds/60)/60
 
-        return hours
+        return dif.seconds
 
     def avg_time_final_res(self):
-        count = 0
+        count = None
         for pr in self.pr_list:
-            try:
+            if pr.get_closed_time() is None:
+                continue
+            if count is None:
+                count = self.time_difference(pr.get_creation_time(), pr.get_closed_time())
+            else:
                 count+=self.time_difference(pr.get_creation_time(), pr.get_closed_time())
-
-        return count / len(self.pr_list)
+        return (count / len(self.pr_list))/3600

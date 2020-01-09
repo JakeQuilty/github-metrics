@@ -7,17 +7,14 @@ from Org import Org
 #GET REPOSS => FOR ALL PRS => annalizePR(rip all important data and tack on to running counts);
 # **UPDATE FUNCTION to run after ever repo/pr is hit??*
 
-repos = ["conjurinc"]       #cyberark,conjurdemos
+orgs = ["conjurinc"]       #cyberark,conjurdemos
 
 
 
 
 def main():
-    org = Org(repos[0])
-    print(org.get_repos())
-    print(org.get_num_repos())
-    print(org.get_closed())
-    print(org.get_open())
+    org = Org(orgs[0])
+    org.export_csv()
 
     # for repo in repoList:
     #     #print("Current Repository: " + repoList[x])
