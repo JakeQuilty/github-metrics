@@ -45,5 +45,10 @@ class Org:
         print(self.get_num_repos())
         print(self.get_closed())
         print(self.get_open())
-        print(self.repo_list[0].avg_time_final_res())
+        print(self.repo_list[0].export())
+
+        #####MAKE ANOTHER DICT WITH ALL THE EXPORTED REPOS
+
+
+       # print(self.repo_list[0].avg_time_sub_approval())
             

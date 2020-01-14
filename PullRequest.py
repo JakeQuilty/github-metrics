@@ -43,12 +43,6 @@ class PullRequest:
     def get_url(self):
         return self.raw_json['url']
 
-    def get_time_difference(self, first, second):
-        dif = second - first
-        hours = (dif/60)/60
-
-        return hours
-
 
 
 ###FIND OUT WHAT OTHER DATA YOU NEED

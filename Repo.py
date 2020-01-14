@@ -5,8 +5,6 @@ from Issue import Issue
 
 class Repo:
 
-    unique_contr = []
-    unique_contr_count = []
 
     def __init__(self,org_name, repo_name):
         #Get lists of pull requests and issues
@@ -21,23 +19,15 @@ class Repo:
         self.pr_list = self.make_pr_list(raw_prs)
         self.open_states = 0
         self.closed_states = 0
-        self.find_states()
+        self.unique_contr = []
+        self.unique_contr_count = []
+        self.created_times = []
+        self.closed_times = []
 
-#Updates parallel lists of unique_contr and their list of contributions(unique_count)
-#this is expensive af
-    def contributors(self,curr_contr):
-        try:
-         unique_contr_count[unique_contr.index(curr_contr)]+=1
-        except ValueError:
-         unique_contr.append(curr_contr)
-         unique_contr_count.append(1)
+        self.get_repo_data(self.pr_list)
 
-##make this later
-    def top_contributor():
-        #get author with most # of contrs
-        raise NotImplementedError()
 
-##create pr list
+    ##create pr list
     def make_pr_list(self,raw_pr_list):
         to_return = []
         for pr in raw_pr_list:
@@ -48,15 +38,36 @@ class Repo:
     def make_issue_list(self,raw_issue_list):
         raise NotImplementedError()
 
-#returns list of ints of the states of the prs in the repo
-    def find_states(self):
-        open_states = 0
-        closed_states = 0
-        for pr in self.pr_list:
-            if pr.get_state() == "closed":
+    #Gets all needed data from repo only touching each pr/issue once. Adds them to their lists
+    def get_repo_data(self, prlist):
+        for pr in prlist:
+            self.created_times.append(pr.get_creation_time())
+            self.closed_times.append(pr.get_closed_time())
+            if pr.get_state() == "closed":  #get state
                 self.closed_states+=1
             else:
                 self.open_states+=1
+            self.contributors(pr.get_author())  #add author to contributor count
+
+
+
+#Updates parallel lists of unique_contr and their list of contributions(unique_count)
+    def contributors(self,curr_contr):
+        try:
+         self.unique_contr_count[self.unique_contr.index(curr_contr)]+=1
+        except ValueError:
+         self.unique_contr.append(curr_contr)
+         self.unique_contr_count.append(1)
+
+#returns FIRST author in list with most contributions
+    def top_contributor(self):
+        high = 0
+        for x in self.unique_contr_count:
+            if x > high:
+                high = x
+        return self.unique_contr[x]
+
+#returns list of ints of the states of the prs in the repo
 
     def get_closed(self):
         return self.closed_states
@@ -77,11 +88,37 @@ class Repo:
 
     def avg_time_final_res(self):
         count = None
-        for pr in self.pr_list:
-            if pr.get_closed_time() is None:
-                continue
+        for x in range(len(self.pr_list)):
+            try:
+                if self.closed_times[x] is None:
+                        continue
+            except IndexError:
+                pass
             if count is None:
-                count = self.time_difference(pr.get_creation_time(), pr.get_closed_time())
+                count = self.time_difference(self.created_times[x], self.closed_times[x])
             else:
-                count+=self.time_difference(pr.get_creation_time(), pr.get_closed_time())
-        return (count / len(self.pr_list))/3600
+                count += self.time_difference(self.created_times[x], self.closed_times[x])
+        return (count / len(self.pr_list))/3600 ##seconds to hours
+
+        # def avg_time_sub_approval(self):
+        #     count = None
+        #     for pr in self.pr_list:
+        #         if pr.get_closed_time() is None: #skips PRs that are still open
+        #             continue
+        #         if count is None:
+        #             count = self.time_difference(pr.get_creation_time(), pr.get_closed_time())
+        #         else:
+        #             count+=self.time_difference(pr.get_creation_time(), pr.get_closed_time())
+        #     return (count / len(self.pr_list))/3600 ##seconds to hours
+
+    def export(self):
+        to_export = {
+           # 'TimeToFirstResponse'   : pass
+            'avgResolution': self.avg_time_final_res(),
+            'closed': self.get_closed(),
+            'open': self.get_open(),
+            'contributors': self.unique_contr,
+            'topContributor': self.top_contributor()
+
+        }
+        return to_export
