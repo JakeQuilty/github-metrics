@@ -51,8 +51,8 @@ class Org:
     def export_json(self):
         org_data = {
             'totalCount': self.get_num_repos(),
-            'closed': self.get_closed(),
-            'open': self.get_open()
+            'closedPR': self.get_closed(),
+            'openPR': self.get_open()
         }
         x = 0
         for repo in self.repo_list:

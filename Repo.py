@@ -39,7 +39,6 @@ class Repo:
         to_return = []
         for pr in raw_pr_list:
             to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN))
-        
         return to_return
 
     def make_issue_list(self,raw_issue_list):
@@ -47,6 +46,7 @@ class Repo:
 
     #Gets all needed data from repo only touching each pr/issue once. Adds them to their lists
     def get_repo_data(self, prlist):
+        print("Getting data from " + self.repo_name + "...")
         for pr in prlist:
             self.created_times.append(pr.get_creation_time())
             self.closed_times.append(pr.get_closed_time())
@@ -134,10 +134,10 @@ class Repo:
         to_export = {
             'name': self.repo_name,
             'total_prs': self.get_pr_count(),
-            'TimeToFirstResponse': self.avg_time_first_response(),
-            'avgResolution': self.avg_time_final_res(),
-            'closed': self.get_closed(),
-            'open': self.get_open(),
+            'avgTimeToFirstResponse': self.avg_time_first_response(),
+            'avgTimeToResolution': self.avg_time_final_res(),
+            'closedPR': self.get_closed(),
+            'openPR': self.get_open(),
             'contributors': self.unique_contr,
             'topContributor': self.top_contributor()
 
