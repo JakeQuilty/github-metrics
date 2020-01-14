@@ -47,16 +47,17 @@ class PullRequest:
     def get_url(self):
         return self.raw_json['url']
 
+#has to make another api call to get first response time
     def get_first_response_time(self):
-
-        ## make api call; return the time
         url = self.raw_json['comments_url']
         if url == None:
             return None
         response = requests.get(url, auth=(self.USER, self.AUTH_TOKEN))
         raw_comments = json.loads(response.text)
-
-        return datetime.datetime.strptime(raw_comments[0]['created_at'], "%Y-%m-%dT%H:%M:%SZ")
+        try:
+            return datetime.datetime.strptime(raw_comments[0]['created_at'], "%Y-%m-%dT%H:%M:%SZ")
+        except IndexError:
+            return None
 
 
 

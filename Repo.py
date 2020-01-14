@@ -29,6 +29,7 @@ class Repo:
         self.unique_contr_count = []
         self.created_times = []
         self.closed_times = []
+        self.first_response_times = []
 
         self.get_repo_data(self.pr_list)
 
@@ -49,6 +50,7 @@ class Repo:
         for pr in prlist:
             self.created_times.append(pr.get_creation_time())
             self.closed_times.append(pr.get_closed_time())
+            self.first_response_times.append(pr.get_first_response_time())
             if pr.get_state() == "closed":  #get state
                 self.closed_states+=1
             else:
@@ -97,37 +99,42 @@ class Repo:
 
         return dif.seconds
 
+#avg time to final resolution
     def avg_time_final_res(self):
         count = None
         for x in range(self.get_pr_count()):
             if len(self.closed_times) > 0:
-                if self.closed_times[x] is None:
+                if self.closed_times[x] is None:    #does not count open prs
                         continue
             if count is None:
                 count = self.time_difference(self.created_times[x], self.closed_times[x])
             else:
                 count += self.time_difference(self.created_times[x], self.closed_times[x])
-
         if count == None:
             return None
-
         return (count / len(self.pr_list))/3600 ##seconds to hours
 
-        # def avg_time_sub_approval(self):
-        #     count = None
-        #     for pr in self.pr_list:
-        #         if pr.get_closed_time() is None: #skips PRs that are still open
-        #             continue
-        #         if count is None:
-        #             count = self.time_difference(pr.get_creation_time(), pr.get_closed_time())
-        #         else:
-        #             count+=self.time_difference(pr.get_creation_time(), pr.get_closed_time())
-        #     return (count / len(self.pr_list))/3600 ##seconds to hours
+#average time to first comment
+    def avg_time_first_response(self):
+        count = None
+        for x in range(self.get_pr_count()):
+            if len(self.first_response_times) > 0:
+                if self.first_response_times[x] is None:
+                        continue
+            if count is None:
+                count = self.time_difference(self.created_times[x], self.first_response_times[x])
+            else:
+                count += self.time_difference(self.created_times[x], self.first_response_times[x])
+        if count == None:
+            return None
+        return (count / len(self.pr_list))/3600 ##seconds to hours
 
+#Runs all the methods that fio the data and puts it into a dict
     def export(self):
         to_export = {
             'name': self.repo_name,
-           # 'TimeToFirstResponse'   : pass
+            'total_prs': self.get_pr_count(),
+            'TimeToFirstResponse': self.avg_time_first_response(),
             'avgResolution': self.avg_time_final_res(),
             'closed': self.get_closed(),
             'open': self.get_open(),

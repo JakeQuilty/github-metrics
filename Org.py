@@ -42,6 +42,12 @@ class Org:
     def get_closed(self):
         return self.closed_states
 
+    ##################
+    #methods to make:
+    #repos with smallest and greatest avgTimes, open, closed
+    #call them in export_json and feed in the org_data dict
+    ##################
+
     def export_json(self):
         org_data = {
             'totalCount': self.get_num_repos(),
@@ -52,9 +58,13 @@ class Org:
         for repo in self.repo_list:
             org_data[x] = repo.export()
             x+=1
+
+        #############
+
+
         file_name = self.name + ".json"
         with open(file_name, 'w') as outfile:
             json.dump(org_data, outfile)
 
-        #####MAKE ANOTHER DICT WITH ALL THE EXPORTED REPOS
+
             
