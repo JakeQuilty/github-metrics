@@ -1,12 +1,14 @@
 import json
 import requests
-import csv
+import os
 from Repo import Repo
 class Org:
     def __init__(self, org_name):
         self.name = org_name
+        self.USER = os.getenv('GITHUB_USERNAME')         #Have to auth to increase api limit from 60 -> 5000
+        self.AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN')
         self.url = "https://api.github.com/search/repositories?q=org:" + org_name + "+archived:false+is:public&per_page=100"
-        response = requests.get(self.url)
+        response = requests.get(self.url, auth=(self.USER, self.AUTH_TOKEN))
         self.raw_repos = json.loads(response.text)
         self.repo_list = self.make_repo_list()
         self.open_states = 0
@@ -17,7 +19,7 @@ class Org:
     def make_repo_list(self):
         to_return = []
         for x in range(self.raw_repos['total_count']):
-            to_return.append(Repo(self.name, self.raw_repos['items'][x]['name']))
+            to_return.append(Repo(self.name, self.raw_repos['items'][x]['name'], self.USER, self.AUTH_TOKEN))
         return to_return
 #return list of repo objects
     def get_repos(self):
@@ -40,15 +42,19 @@ class Org:
     def get_closed(self):
         return self.closed_states
 
-    def export_csv(self):
-        print(self.get_repos())
-        print(self.get_num_repos())
-        print(self.get_closed())
-        print(self.get_open())
-        print(self.repo_list[0].export())
+    def export_json(self):
+        org_data = {
+            'totalCount': self.get_num_repos(),
+            'closed': self.get_closed(),
+            'open': self.get_open()
+        }
+        x = 0
+        for repo in self.repo_list:
+            org_data[x] = repo.export()
+            x+=1
+        file_name = self.name + ".json"
+        with open(file_name, 'w') as outfile:
+            json.dump(org_data, outfile)
 
         #####MAKE ANOTHER DICT WITH ALL THE EXPORTED REPOS
-
-
-       # print(self.repo_list[0].avg_time_sub_approval())
             

@@ -1,4 +1,3 @@
-import time
 from Org import Org
 ##----------------------------------------------
 ## GITHUB HAS A 5000 API CALL LIMIT PER **HOUR**
@@ -14,7 +13,7 @@ orgs = ["conjurinc"]       #cyberark,conjurdemos
 
 def main():
     org = Org(orgs[0])
-    org.export_csv()
+    org.export_json()
 
     # for repo in repoList:
     #     #print("Current Repository: " + repoList[x])

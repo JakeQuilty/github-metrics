@@ -1,12 +1,16 @@
 import json
 import requests
+import os
 from PullRequest import PullRequest
 from Issue import Issue
 
 class Repo:
 
 
-    def __init__(self,org_name, repo_name):
+    def __init__(self,org_name, repo_name, USER, AUTH_TOKEN):
+        self.USER = USER
+        self.AUTH_TOKEN = AUTH_TOKEN
+
         #Get lists of pull requests and issues
         # self.issue_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/issues?state=all"
         # issue_response = requests.get(self.issue_url)
@@ -14,9 +18,11 @@ class Repo:
         # self.issue_list = make_issue_list(raw_issues)
 
         self.pull_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/pulls?state=all"
-        pull_response = requests.get(self.pull_url)
+        pull_response = requests.get(self.pull_url, auth=(self.USER, self.AUTH_TOKEN))
         raw_prs = json.loads(pull_response.text)
         self.pr_list = self.make_pr_list(raw_prs)
+
+        self.repo_name = repo_name
         self.open_states = 0
         self.closed_states = 0
         self.unique_contr = []
@@ -31,7 +37,7 @@ class Repo:
     def make_pr_list(self,raw_pr_list):
         to_return = []
         for pr in raw_pr_list:
-            to_return.append(PullRequest(pr))
+            to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN))
         
         return to_return
 
@@ -61,11 +67,16 @@ class Repo:
 
 #returns FIRST author in list with most contributions
     def top_contributor(self):
+        if len(self.unique_contr) == 0:
+            return None
+
         high = 0
-        for x in self.unique_contr_count:
-            if x > high:
-                high = x
-        return self.unique_contr[x]
+        index = 0
+        for x in range(len(self.unique_contr_count)):
+            if self.unique_contr_count[x] > high:
+                high = self.unique_contr_count[x]
+                index = x
+        return self.unique_contr[index]
 
 #returns list of ints of the states of the prs in the repo
 
@@ -88,16 +99,18 @@ class Repo:
 
     def avg_time_final_res(self):
         count = None
-        for x in range(len(self.pr_list)):
-            try:
+        for x in range(self.get_pr_count()):
+            if len(self.closed_times) > 0:
                 if self.closed_times[x] is None:
                         continue
-            except IndexError:
-                pass
             if count is None:
                 count = self.time_difference(self.created_times[x], self.closed_times[x])
             else:
                 count += self.time_difference(self.created_times[x], self.closed_times[x])
+
+        if count == None:
+            return None
+
         return (count / len(self.pr_list))/3600 ##seconds to hours
 
         # def avg_time_sub_approval(self):
@@ -113,6 +126,7 @@ class Repo:
 
     def export(self):
         to_export = {
+            'name': self.repo_name,
            # 'TimeToFirstResponse'   : pass
             'avgResolution': self.avg_time_final_res(),
             'closed': self.get_closed(),

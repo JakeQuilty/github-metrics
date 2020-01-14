@@ -1,7 +1,11 @@
 import datetime
+import json
+import requests
 class PullRequest:
-    def __init__(self,raw_json):
+    def __init__(self,raw_json, USER, AUTH_TOKEN):
         self.raw_json = raw_json
+        self.USER = USER
+        self.AUTH_TOKEN = AUTH_TOKEN
 
 ##del self.raw_json ??????/
 
@@ -42,6 +46,18 @@ class PullRequest:
     
     def get_url(self):
         return self.raw_json['url']
+
+    def get_first_response_time(self):
+
+        ## make api call; return the time
+        url = self.raw_json['comments_url']
+        if url == None:
+            return None
+        response = requests.get(url, auth=(self.USER, self.AUTH_TOKEN))
+        raw_comments = json.loads(response.text)
+
+        return datetime.datetime.strptime(raw_comments[0]['created_at'], "%Y-%m-%dT%H:%M:%SZ")
+
 
 
 
