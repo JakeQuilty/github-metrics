@@ -15,15 +15,23 @@ class Repo:
         self.org_name = org_name
 
         #Get lists of pull requests and issues
-        # self.issue_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/issues?state=all"
+        # self.issue_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/issues?state=all&page=1"
         # issue_response = requests.get(self.issue_url)
         # raw_issues = json.loads(issue_response.text)
+        # while 'next' in issue_response.links.keys():
+        #     issue_response = requests.get(issue_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+        #     raw_issues.extend(json.loads(issue_response.text))
         # self.issue_list = make_issue_list(raw_issues)
 
-        self.pull_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/pulls?state=all"
+        self.pull_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/pulls?state=all&per_page=100&page=1"
         pull_response = requests.get(self.pull_url, auth=(self.USER, self.AUTH_TOKEN))
         raw_prs = json.loads(pull_response.text)
+        while 'next' in pull_response.links.keys():
+            pull_response = requests.get(pull_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            raw_prs.extend(json.loads(pull_response.text))
         self.pr_list = self.make_pr_list(raw_prs)
+
+        print(self.pr_list)
 
         self.repo_name = repo_name
         self.open_states = 0
@@ -44,20 +52,27 @@ class Repo:
         self.get_repo_data(self.pr_list)
 
 
-    ##create pr list
+    ##create list of PR objects
     def make_pr_list(self,raw_pr_list):
         to_return = []
         for pr in raw_pr_list:
             to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN, self.org_name))
         return to_return
 
+    #create list of Issue objects
     def make_issue_list(self,raw_issue_list):
-        raise NotImplementedError()
+        to_return = []
+        for issue in raw_issue_list:
+            to_return.append(Issue(pr,self.USER, self.AUTH_TOKEN, self.org_name))
+        return to_return
 
     #Gets all needed data from repo only touching each pr/issue once. Adds them to their lists
     def get_repo_data(self, prlist):
         print("Getting data from " + self.repo_name + "...")
+        #x = 1
         for pr in prlist:
+            #print(x)
+            #x+=1
             self.created_times.append(pr.get_creation_time())
             self.closed_times.append(pr.get_closed_time())
             self.first_response_times.append(pr.get_first_response_time())
@@ -79,6 +94,7 @@ class Repo:
                 self.out_org_contr = unique[0]
                 self.out_org_contr_count = unique[1]
 
+            #do this dynamically from repo creation date instead of 6 months?
             if pr.within_six_months():
                 for date in self.six_months:
                     if pr.get_creation_time().year == date[0] and pr.get_creation_time().month == date[1]:
@@ -171,7 +187,6 @@ class Repo:
             'total': sum(self.six_months_count)
         }
         x = 0
-
         for date in self.six_months:
             to_return[x] = {
                 'year': date[0],
@@ -181,6 +196,17 @@ class Repo:
             x+=1
         return to_return
 
+#format contributor data
+    def format_contributor_list(self, contr_list, contr_count):
+        to_return = {
+            'topContributor': self.top_contributor(contr_list, contr_count)
+        }
+        for  x in range(len(contr_list)):
+            to_return[x] = {
+                'user': contr_list[x],
+                'number': contr_count[x]
+            }
+        return to_return
 
 #Runs all the methods that fio the data and puts it into a dict
     def export(self):
@@ -193,11 +219,17 @@ class Repo:
             'lastSixMonthPR': self.format_last_six_months_by_month(),
             'avgTimeToFirstResponsePR': self.avg_time_first_response(),
             'avgTimeToResolutionPR': self.avg_time_final_res(),
-            'contributors': self.unique_contr,
-            'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),  ##add number of prs to contributors lists??
-            'inOrgContributors': self.in_org_contr,
-            'topInOrgContributor': self.top_contributor(self.in_org_contr, self.in_org_contr_count),
-            'outOrgContributors': self.out_org_contr,
-            'topOutOrgContributor': self.top_contributor(self.out_org_contr, self.out_org_contr_count)
+            'allContributors': self.format_contributor_list(self.unique_contr,self.unique_contr_count),
+            'inOrgContributors': self.format_contributor_list(self.in_org_contr, self.in_org_contr_count),
+            'outOrgContributors': self.format_contributor_list(self.out_org_contr, self.out_org_contr_count)
+
+
+
+            # 'contributors': self.unique_contr,
+            # 'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),  ##add number of prs to contributors lists??
+            # 'inOrgContributors': self.in_org_contr,
+            # 'topInOrgContributor': self.top_contributor(self.in_org_contr, self.in_org_contr_count),
+            # 'outOrgContributors': self.out_org_contr,
+            # 'topOutOrgContributor': self.top_contributor(self.out_org_contr, self.out_org_contr_count)
         }
         return to_export
