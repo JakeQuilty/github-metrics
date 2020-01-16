@@ -10,7 +10,7 @@ def main():
         print("\nORGANIZATION: "+ org_name)
         org = Org(org_name)
         org.export_json()
-        print("Finished exporting: "+ org_name)
+        print("Finished exporting: "+ org_name+".json")
 
 if __name__ == '__main__':
     main()

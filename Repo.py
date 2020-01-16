@@ -1,6 +1,8 @@
 import json
 import requests
 import os
+import datetime
+import time
 from PullRequest import PullRequest
 from Issue import Issue
 
@@ -35,6 +37,9 @@ class Repo:
         self.created_times = []
         self.closed_times = []
         self.first_response_times = []
+        now = time.localtime()
+        self.six_months = [time.localtime(time.mktime((time.localtime().tm_year, time.localtime().tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(6)]
+        self.six_months_count = [0] * 6
 
         self.get_repo_data(self.pr_list)
 
@@ -73,6 +78,18 @@ class Repo:
                 unique = self.contributors(author, self.out_org_contr, self.out_org_contr_count )  #add author to out of org count
                 self.out_org_contr = unique[0]
                 self.out_org_contr_count = unique[1]
+
+            if pr.within_six_months():
+                for date in self.six_months:
+                    if pr.get_creation_time().year == date[0] and pr.get_creation_time().month == date[1]:
+                        self.six_months_count[self.six_months.index(date)] += 1
+                        break
+            
+                
+
+
+
+
 
 
 
@@ -148,17 +165,36 @@ class Repo:
             return None
         return (count / len(self.pr_list))/3600 ##seconds to hours
 
+#format last 6 months of prs
+    def format_last_six_months_by_month(self):
+        to_return = {
+            'total': sum(self.six_months_count)
+        }
+        x = 0
+
+        for date in self.six_months:
+            to_return[x] = {
+                'year': date[0],
+                'month': date[1],
+                'count': self.six_months_count[x]
+            }
+            x+=1
+        return to_return
+
+
 #Runs all the methods that fio the data and puts it into a dict
     def export(self):
+
         to_export = {
             'name': self.repo_name,
             'totalPR': self.get_pr_count(),
             'closedPR': self.get_closed(),
             'openPR': self.get_open(),
+            'lastSixMonthPR': self.format_last_six_months_by_month(),
             'avgTimeToFirstResponsePR': self.avg_time_first_response(),
             'avgTimeToResolutionPR': self.avg_time_final_res(),
             'contributors': self.unique_contr,
-            'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),
+            'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),  ##add number of prs to contributors lists??
             'inOrgContributors': self.in_org_contr,
             'topInOrgContributor': self.top_contributor(self.in_org_contr, self.in_org_contr_count),
             'outOrgContributors': self.out_org_contr,

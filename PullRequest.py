@@ -75,5 +75,17 @@ class PullRequest:
             return None
 
 
+    def within_six_months(self):
+        curr_date = datetime.datetime.strptime(self.raw_json['created_at'], "%Y-%m-%dT%H:%M:%SZ").date()
+        today = datetime.datetime.today().date()
+        six_months = (datetime.datetime.today() - datetime.timedelta(6*365/12)).date()
+
+        if six_months <= curr_date <= today:
+            return True
+        else:
+            return False
+
+
+
 ###FIND OUT WHAT OTHER DATA YOU NEED
     
