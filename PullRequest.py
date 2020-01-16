@@ -2,10 +2,11 @@ import datetime
 import json
 import requests
 class PullRequest:
-    def __init__(self,raw_json, USER, AUTH_TOKEN):
+    def __init__(self,raw_json, USER, AUTH_TOKEN, ORG_NAME):
         self.raw_json = raw_json
         self.USER = USER
         self.AUTH_TOKEN = AUTH_TOKEN
+        self.ORG_NAME = ORG_NAME
 
 ##del self.raw_json ??????/
 
@@ -59,7 +60,19 @@ class PullRequest:
         except IndexError:
             return None
 
-
+#returns true or false if author of PR is in the organization
+#if authed user is not in the orgs, this will return None
+    def author_in_org(self):
+        ##get api
+        ##return true or false
+        url = "https://api.github.com/orgs/" + self.ORG_NAME + "/members/" + self.get_author()
+        response = requests.get(url, auth=(self.USER, self.AUTH_TOKEN))
+        if response.status_code == 204:
+            return True
+        elif response.status_code == 404:
+            return False
+        else:
+            return None
 
 
 ###FIND OUT WHAT OTHER DATA YOU NEED

@@ -10,6 +10,7 @@ class Repo:
     def __init__(self,org_name, repo_name, USER, AUTH_TOKEN):
         self.USER = USER
         self.AUTH_TOKEN = AUTH_TOKEN
+        self.org_name = org_name
 
         #Get lists of pull requests and issues
         # self.issue_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/issues?state=all"
@@ -27,6 +28,10 @@ class Repo:
         self.closed_states = 0
         self.unique_contr = []
         self.unique_contr_count = []
+        self.in_org_contr = []
+        self.in_org_contr_count = []
+        self.out_org_contr = []
+        self.out_org_contr_count = []
         self.created_times = []
         self.closed_times = []
         self.first_response_times = []
@@ -38,7 +43,7 @@ class Repo:
     def make_pr_list(self,raw_pr_list):
         to_return = []
         for pr in raw_pr_list:
-            to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN))
+            to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN, self.org_name))
         return to_return
 
     def make_issue_list(self,raw_issue_list):
@@ -55,30 +60,44 @@ class Repo:
                 self.closed_states+=1
             else:
                 self.open_states+=1
-            self.contributors(pr.get_author())  #add author to contributor count
+
+            author = pr.get_author()
+            unique = self.contributors(author, self.unique_contr, self.unique_contr_count )  #add author to total count
+            self.unique_contr = unique[0]
+            self.unique_contr_count = unique[1]
+            if pr.author_in_org():
+                unique = self.contributors(author, self.in_org_contr, self.in_org_contr_count )  #add author to in org count
+                self.in_org_contr = unique[0]
+                self.in_org_contr_count = unique[1]
+            else:
+                unique = self.contributors(author, self.out_org_contr, self.out_org_contr_count )  #add author to out of org count
+                self.out_org_contr = unique[0]
+                self.out_org_contr_count = unique[1]
 
 
 
 #Updates parallel lists of unique_contr and their list of contributions(unique_count)
-    def contributors(self,curr_contr):
+    def contributors(self,curr_contr,contr_list, contr_count):
         try:
-         self.unique_contr_count[self.unique_contr.index(curr_contr)]+=1
+         contr_count[contr_list.index(curr_contr)]+=1
         except ValueError:
-         self.unique_contr.append(curr_contr)
-         self.unique_contr_count.append(1)
+         contr_list.append(curr_contr)
+         contr_count.append(1)
+
+        return [contr_list, contr_count]
 
 #returns FIRST author in list with most contributions
-    def top_contributor(self):
-        if len(self.unique_contr) == 0:
+    def top_contributor(self, contr_list, contr_count):
+        if len(contr_list) == 0:
             return None
 
         high = 0
         index = 0
-        for x in range(len(self.unique_contr_count)):
-            if self.unique_contr_count[x] > high:
-                high = self.unique_contr_count[x]
+        for x in range(len(contr_count)):
+            if contr_count[x] > high:
+                high = contr_count[x]
                 index = x
-        return self.unique_contr[index]
+        return contr_list[index]
 
 #returns list of ints of the states of the prs in the repo
 
@@ -133,13 +152,16 @@ class Repo:
     def export(self):
         to_export = {
             'name': self.repo_name,
-            'total_prs': self.get_pr_count(),
-            'avgTimeToFirstResponse': self.avg_time_first_response(),
-            'avgTimeToResolution': self.avg_time_final_res(),
+            'totalPR': self.get_pr_count(),
             'closedPR': self.get_closed(),
             'openPR': self.get_open(),
+            'avgTimeToFirstResponsePR': self.avg_time_first_response(),
+            'avgTimeToResolutionPR': self.avg_time_final_res(),
             'contributors': self.unique_contr,
-            'topContributor': self.top_contributor()
-
+            'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),
+            'inOrgContributors': self.in_org_contr,
+            'topInOrgContributor': self.top_contributor(self.in_org_contr, self.in_org_contr_count),
+            'outOrgContributors': self.out_org_contr,
+            'topOutOrgContributor': self.top_contributor(self.out_org_contr, self.out_org_contr_count)
         }
         return to_export
