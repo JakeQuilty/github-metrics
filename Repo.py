@@ -31,8 +31,6 @@ class Repo:
             raw_prs.extend(json.loads(pull_response.text))
         self.pr_list = self.make_pr_list(raw_prs)
 
-        print(self.pr_list)
-
         self.repo_name = repo_name
         self.open_states = 0
         self.closed_states = 0
