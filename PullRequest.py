@@ -8,8 +8,6 @@ class PullRequest:
         self.AUTH_TOKEN = AUTH_TOKEN
         self.ORG_NAME = ORG_NAME
 
-##del self.raw_json ??????/
-
     def get_author(self):
         return self.raw_json['user']['login']
 #returns datetime object of the time
