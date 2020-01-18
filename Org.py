@@ -11,8 +11,17 @@ class Org:
         response = requests.get(self.url, auth=(self.USER, self.AUTH_TOKEN))
         self.raw_repos = json.loads(response.text)
         while 'next' in response.links.keys():
-            response = requests.get(response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))   ##this stuff is incase there are more than 100 repos
+            response = requests.get(response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
             self.raw_repos.extend(json.loads(response.text))
+
+        members_url = "https://api.github.com/orgs/"+ org_name +"/members?per_page=100&page=1"
+        response = requests.get(members_url, auth=(self.USER, self.AUTH_TOKEN))
+        org_members = json.loads(response.text)
+        while 'next' in response.links.keys():
+            response = requests.get(response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            org_members.extend(json.loads(response.text))
+
+        self.members = self.make_member_list(org_members)
         self.repo_list = self.make_repo_list()
 
         self.open_states = 0
@@ -23,7 +32,13 @@ class Org:
     def make_repo_list(self):
         to_return = []
         for x in range(self.raw_repos['total_count']):
-            to_return.append(Repo(self.name, self.raw_repos['items'][x]['name'], self.USER, self.AUTH_TOKEN))
+            to_return.append(Repo(self.name, self.raw_repos['items'][x]['name'], self.USER, self.AUTH_TOKEN, self.members))
+        return to_return
+#make string list of org members
+    def make_member_list(self, members):
+        to_return = []
+        for member in members:
+            to_return.append(member['login'])
         return to_return
 #return list of repo objects
     def get_repos(self):
@@ -37,8 +52,8 @@ class Org:
         self.closed_states = 0
 
         for repo in self.repo_list:
-            self.open_states += repo.get_open()
-            self.closed_states += repo.get_closed()
+            self.open_states += repo.pr_open_states
+            self.closed_states += repo.pr_closed_states
 
     def get_open(self):
         return self.open_states

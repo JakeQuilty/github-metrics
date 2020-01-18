@@ -3,111 +3,143 @@ import requests
 import os
 import datetime
 import time
-from PullRequest import PullRequest
+#from PullRequest import PullRequest
 from Issue import Issue
 
 class Repo:
 
 
-    def __init__(self,org_name, repo_name, USER, AUTH_TOKEN):
+    def __init__(self,org_name, issue_name, USER, AUTH_TOKEN, org_members):
         self.USER = USER
         self.AUTH_TOKEN = AUTH_TOKEN
         self.org_name = org_name
+        self.org_members = org_members
 
         #Get lists of pull requests and issues
-        # self.issue_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/issues?state=all&page=1"
-        # issue_response = requests.get(self.issue_url)
-        # raw_issues = json.loads(issue_response.text)
-        # while 'next' in issue_response.links.keys():
-        #     issue_response = requests.get(issue_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
-        #     raw_issues.extend(json.loads(issue_response.text))
-        # self.issue_list = make_issue_list(raw_issues)
+        issue_url = "https://api.github.com/repos/"+ org_name + "/" + issue_name +"/issues?state=all&page=1"
+        issue_response = requests.get(issue_url, auth=(self.USER, self.AUTH_TOKEN))
+        raw_issues = json.loads(issue_response.text)
+        while 'next' in issue_response.links.keys():
+            issue_response = requests.get(issue_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            raw_issues.extend(json.loads(issue_response.text))
 
-        self.pull_url = "https://api.github.com/repos/"+ org_name + "/" + repo_name +"/pulls?state=all&per_page=100&page=1"
-        pull_response = requests.get(self.pull_url, auth=(self.USER, self.AUTH_TOKEN))
-        raw_prs = json.loads(pull_response.text)
-        while 'next' in pull_response.links.keys():
-            pull_response = requests.get(pull_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
-            raw_prs.extend(json.loads(pull_response.text))
-        self.pr_list = self.make_pr_list(raw_prs)
+        self.pr_list = []
+        self.issue_list = []
+        self.sort_lists(raw_issues)
 
-        self.repo_name = repo_name
-        self.open_states = 0
-        self.closed_states = 0
-        self.unique_contr = []
-        self.unique_contr_count = []
-        self.in_org_contr = []
-        self.in_org_contr_count = []
-        self.out_org_contr = []
-        self.out_org_contr_count = []
-        self.created_times = []
-        self.closed_times = []
-        self.first_response_times = []
         now = time.localtime()
         self.six_months = [time.localtime(time.mktime((time.localtime().tm_year, time.localtime().tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(6)]
-        self.six_months_count = [0] * 6
+        self.issue_name = issue_name
 
-        self.get_repo_data(self.pr_list)
+#pr
+        self.pr_open_states = 0
+        self.pr_closed_states = 0
+        self.pr_unique_contr = []
+        self.pr_unique_contr_count = []
+        self.pr_in_org_contr = []
+        self.pr_in_org_contr_count = []
+        self.pr_out_org_contr = []
+        self.pr_out_org_contr_count = []
+        self.pr_created_times = []
+        self.pr_closed_times = []
+        self.pr_first_response_times = []
+        self.pr_six_months_count = [0] * 6
+#issue
+        self.issue_open_states = 0
+        self.issue_closed_states = 0
+        self.issue_unique_contr = []
+        self.issue_unique_contr_count = []
+        self.issue_in_org_contr = []
+        self.issue_in_org_contr_count = []
+        self.issue_out_org_contr = []
+        self.issue_out_org_contr_count = []
+        self.issue_created_times = []
+        self.issue_closed_times = []
+        self.issue_first_response_times = []
+        self.issue_six_months_count = [0] * 6
 
+        self.get_repo_data(self.pr_list, self.issue_list)
 
-    ##create list of PR objects
-    def make_pr_list(self,raw_pr_list):
-        to_return = []
-        for pr in raw_pr_list:
-            to_return.append(PullRequest(pr,self.USER, self.AUTH_TOKEN, self.org_name))
-        return to_return
+    #sort issue and pr lists
+    def sort_lists(self, raw_list):
+        for issue in raw_list:
+            try:
+                flag = issue['pull_request']    ##this will cause an error if the pull_request tag isn't there -> means it's an issue
+                self.pr_list.append(Issue(issue, self.USER, self.AUTH_TOKEN))
+            except KeyError:
+                self.issue_list.append(Issue(issue, self.USER, self.AUTH_TOKEN))
 
-    #create list of Issue objects
-    def make_issue_list(self,raw_issue_list):
-        to_return = []
-        for issue in raw_issue_list:
-            to_return.append(Issue(pr,self.USER, self.AUTH_TOKEN, self.org_name))
-        return to_return
-
-    #Gets all needed data from repo only touching each pr/issue once. Adds them to their lists
-    def get_repo_data(self, prlist):
-        print("Getting data from " + self.repo_name + "...")
-        #x = 1
+    #Gets all needed data for repo from each pr/issue. Adds them to their lists
+    def get_repo_data(self, prlist, issue_list):
+        print("Getting data from " + self.issue_name + "...")
         for pr in prlist:
-            #print(x)
-            #x+=1
-            self.created_times.append(pr.get_creation_time())
-            self.closed_times.append(pr.get_closed_time())
-            self.first_response_times.append(pr.get_first_response_time())
+            self.pr_created_times.append(pr.get_creation_time())
+            self.pr_closed_times.append(pr.get_closed_time())
+            self.pr_first_response_times.append(pr.get_first_response_time())   ############
             if pr.get_state() == "closed":  #get state
-                self.closed_states+=1
+                self.pr_closed_states+=1
             else:
-                self.open_states+=1
+                self.pr_open_states+=1
 
             author = pr.get_author()
-            unique = self.contributors(author, self.unique_contr, self.unique_contr_count )  #add author to total count
-            self.unique_contr = unique[0]
-            self.unique_contr_count = unique[1]
-            if pr.author_in_org():
-                unique = self.contributors(author, self.in_org_contr, self.in_org_contr_count )  #add author to in org count
-                self.in_org_contr = unique[0]
-                self.in_org_contr_count = unique[1]
+            unique = self.contributors(author, self.pr_unique_contr, self.pr_unique_contr_count )  #add author to total count
+            self.pr_unique_contr = unique[0]
+            self.pr_unique_contr_count = unique[1]
+            if self.author_in_org(author):
+                unique = self.contributors(author, self.pr_in_org_contr, self.pr_in_org_contr_count )  #add author to in org count
+                self.pr_in_org_contr = unique[0]
+                self.pr_in_org_contr_count = unique[1]
             else:
-                unique = self.contributors(author, self.out_org_contr, self.out_org_contr_count )  #add author to out of org count
-                self.out_org_contr = unique[0]
-                self.out_org_contr_count = unique[1]
+                unique = self.contributors(author, self.pr_out_org_contr, self.pr_out_org_contr_count )  #add author to out of org count
+                self.pr_out_org_contr = unique[0]
+                self.pr_out_org_contr_count = unique[1]
 
             #do this dynamically from repo creation date instead of 6 months?
             if pr.within_six_months():
                 for date in self.six_months:
                     if pr.get_creation_time().year == date[0] and pr.get_creation_time().month == date[1]:
-                        self.six_months_count[self.six_months.index(date)] += 1
+                        self.pr_six_months_count[self.six_months.index(date)] += 1
                         break
             
-                
+        #for issue in issue_list
+        for issue in issue_list:
+            self.issue_created_times.append(issue.get_creation_time())
+            self.issue_closed_times.append(issue.get_closed_time())
+            self.issue_first_response_times.append(issue.get_first_response_time()) ##############
+            if issue.get_state() == "closed":  #get state
+                self.issue_closed_states+=1
+            else:
+                self.issue_open_states+=1
+
+            author = issue.get_author()
+            unique = self.contributors(author, self.issue_unique_contr, self.issue_unique_contr_count )  #add author to total count
+            self.issue_unique_contr = unique[0]
+            self.issue_unique_contr_count = unique[1]
+            if self.author_in_org(author):
+                unique = self.contributors(author, self.issue_in_org_contr, self.issue_in_org_contr_count )  #add author to in org count
+                self.issue_in_org_contr = unique[0]
+                self.issue_in_org_contr_count = unique[1]
+            else:
+                unique = self.contributors(author, self.issue_out_org_contr, self.issue_out_org_contr_count )  #add author to out of org count
+                self.issue_out_org_contr = unique[0]
+                self.issue_out_org_contr_count = unique[1]
+
+            #do this dynamically from repo creation date instead of 6 months?
+            if issue.within_six_months():
+                for date in self.six_months:
+                    if issue.get_creation_time().year == date[0] and issue.get_creation_time().month == date[1]:
+                        self.issue_six_months_count[self.six_months.index(date)] += 1
+                        break
 
 
+#returns true or false if the author is a member or the current organization
+    def author_in_org(self, author):
+        if author in self.org_members:
+            return True
+        return False
 
 
-
-
-
-#Updates parallel lists of unique_contr and their list of contributions(unique_count)
+#Updates parallel lists of contributors and their # of contributions
     def contributors(self,curr_contr,contr_list, contr_count):
         try:
          contr_count[contr_list.index(curr_contr)]+=1
@@ -130,18 +162,6 @@ class Repo:
                 index = x
         return contr_list[index]
 
-#returns list of ints of the states of the prs in the repo
-
-    def get_closed(self):
-        return self.closed_states
-
-    def get_open(self):
-        return self.open_states
-
-#return number of prs in this repo
-    def get_pr_count(self):
-        return len(self.pr_list)
-
 #find difference in time
     def time_difference(self, first, second):
         dif = second - first
@@ -150,46 +170,52 @@ class Repo:
         return dif.seconds
 
 #avg time to final resolution
-    def avg_time_final_res(self):
+    def avg_time_final_res(self, created_times, closed_times):
         count = None
-        for x in range(self.get_pr_count()):
-            if len(self.closed_times) > 0:
-                if self.closed_times[x] is None:    #does not count open prs
+        num_of_times = 0
+        for x in range(len(created_times)):
+            if len(closed_times) > 0:
+                if closed_times[x] is None:    #does not count open prs
                         continue
             if count is None:
-                count = self.time_difference(self.created_times[x], self.closed_times[x])
+                count = self.time_difference(created_times[x], closed_times[x])
+                num_of_times += 1
             else:
-                count += self.time_difference(self.created_times[x], self.closed_times[x])
+                count += self.time_difference(created_times[x], closed_times[x])
+                num_of_times += 1
         if count == None:
             return None
-        return (count / len(self.pr_list))/3600 ##seconds to hours
+        return (count / len(closed_times))/3600 ##seconds to hours
 
-#average time to first comment
-    def avg_time_first_response(self):
+#average time to first comment                                                          <---- these two are litterally the same thing. fix that
+    def avg_time_first_response(self, created_times, response_times):
         count = None
-        for x in range(self.get_pr_count()):
-            if len(self.first_response_times) > 0:
-                if self.first_response_times[x] is None:
+        num_of_times = 0
+        for x in range(len(created_times)):
+            if len(response_times) > 0:
+                if response_times[x] is None:
                         continue
             if count is None:
-                count = self.time_difference(self.created_times[x], self.first_response_times[x])
+                count = self.time_difference(created_times[x], response_times[x])
+                num_of_times += 1
             else:
-                count += self.time_difference(self.created_times[x], self.first_response_times[x])
+                count += self.time_difference(created_times[x], response_times[x])
+                num_of_times += 1
         if count == None:
             return None
-        return (count / len(self.pr_list))/3600 ##seconds to hours
+        return (count / num_of_times)/3600 ##seconds to hours
 
 #format last 6 months of prs
-    def format_last_six_months_by_month(self):
+    def format_last_six_months_by_month(self, count):
         to_return = {
-            'total': sum(self.six_months_count)
+            'total': sum(count)
         }
         x = 0
         for date in self.six_months:
             to_return[x] = {
                 'year': date[0],
                 'month': date[1],
-                'count': self.six_months_count[x]
+                'count': count[x]
             }
             x+=1
         return to_return
@@ -197,7 +223,8 @@ class Repo:
 #format contributor data
     def format_contributor_list(self, contr_list, contr_count):
         to_return = {
-            'topContributor': self.top_contributor(contr_list, contr_count)
+            'topContributor': self.top_contributor(contr_list, contr_count),
+            'size': len(contr_list)
         }
         for  x in range(len(contr_list)):
             to_return[x] = {
@@ -210,24 +237,25 @@ class Repo:
     def export(self):
 
         to_export = {
-            'name': self.repo_name,
-            'totalPR': self.get_pr_count(),
-            'closedPR': self.get_closed(),
-            'openPR': self.get_open(),
-            'lastSixMonthPR': self.format_last_six_months_by_month(),
-            'avgTimeToFirstResponsePR': self.avg_time_first_response(),
-            'avgTimeToResolutionPR': self.avg_time_final_res(),
-            'allContributors': self.format_contributor_list(self.unique_contr,self.unique_contr_count),
-            'inOrgContributors': self.format_contributor_list(self.in_org_contr, self.in_org_contr_count),
-            'outOrgContributors': self.format_contributor_list(self.out_org_contr, self.out_org_contr_count)
+            'name': self.issue_name,
+            'totalPR': len(self.pr_list),
+            'closedPR': self.pr_closed_states,
+            'openPR': self.pr_open_states,
+            'lastSixMonthPR': self.format_last_six_months_by_month(self.pr_six_months_count),
+            'avgTimeToFirstResponsePR': self.avg_time_first_response(self.pr_created_times, self.pr_closed_times),
+            'avgTimeToResolutionPR': self.avg_time_final_res(self.pr_created_times, self.pr_first_response_times),
+            'allPRAuthors': self.format_contributor_list(self.pr_unique_contr,self.pr_unique_contr_count),
+            'inOrgPRAuthors': self.format_contributor_list(self.pr_in_org_contr, self.pr_in_org_contr_count),
+            'outOrgContributorsPR': self.format_contributor_list(self.pr_out_org_contr, self.pr_out_org_contr_count),
+            'totalIssue': len(self.issue_list),
+            'closedIssue': self.issue_closed_states,
+            'openIssue': self.issue_open_states,
+            'lastSixMonthIssue': self.format_last_six_months_by_month(self.issue_six_months_count),
+            'avgTimeToFirstResponseIssue': self.avg_time_first_response(self.issue_created_times, self.issue_closed_times),
+            'avgTimeToResolutionIssue': self.avg_time_final_res(self.issue_created_times, self.issue_first_response_times),
+            'allIssueAuthors': self.format_contributor_list(self.issue_unique_contr,self.issue_unique_contr_count),
+            'inOrgIssueAuthors': self.format_contributor_list(self.issue_in_org_contr, self.issue_in_org_contr_count),
+            'outOrgIssueAuthors': self.format_contributor_list(self.issue_out_org_contr, self.issue_out_org_contr_count)
 
-
-
-            # 'contributors': self.unique_contr,
-            # 'topContributorOverall': self.top_contributor(self.unique_contr, self.unique_contr_count),  ##add number of prs to contributors lists??
-            # 'inOrgContributors': self.in_org_contr,
-            # 'topInOrgContributor': self.top_contributor(self.in_org_contr, self.in_org_contr_count),
-            # 'outOrgContributors': self.out_org_contr,
-            # 'topOutOrgContributor': self.top_contributor(self.out_org_contr, self.out_org_contr_count)
         }
         return to_export
