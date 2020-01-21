@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import json
 import requests
 import os
 import datetime
 import time
+
 #from PullRequest import PullRequest
 from Issue import Issue
 

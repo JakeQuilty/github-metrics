@@ -1,7 +1,11 @@
-from Org import Org
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 ##----------------------------------------------
 ## GITHUB HAS A 5000 API CALL LIMIT PER **HOUR**
 ##----------------------------------------------
+
+from Org import Org
 
 orgs = ["conjurinc", "cyberark", "conjurdemos"]
 
