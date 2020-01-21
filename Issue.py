@@ -29,16 +29,16 @@ class Issue:
         return self.raw_json['state']
 
 #has to make another api call to get first response time
-    def get_first_response_time(self):
-        url = self.raw_json['comments_url']
-        if url == None:
-            return None
-        response = requests.get(url, auth=(self.USER, self.AUTH_TOKEN))
-        raw_comments = json.loads(response.text)
-        try:
-            return datetime.datetime.strptime(raw_comments[0]['created_at'], "%Y-%m-%dT%H:%M:%SZ")
-        except IndexError:
-            return None
+    # def get_first_response_time(self):
+    #     url = self.raw_json['comments_url']
+    #     if url == None:
+    #         return None
+    #     response = requests.get(url, auth=(self.USER, self.AUTH_TOKEN))
+    #     raw_comments = json.loads(response.text)
+    #     try:
+    #         return datetime.datetime.strptime(raw_comments[0]['created_at'], "%Y-%m-%dT%H:%M:%SZ")
+    #     except IndexError:
+    #         return None
 
     def within_six_months(self):
         curr_date = datetime.datetime.strptime(self.raw_json['created_at'], "%Y-%m-%dT%H:%M:%SZ").date()
@@ -49,6 +49,9 @@ class Issue:
             return True
         else:
             return False
+
+    def get_url(self):
+        return self.raw_json['url']
 
 
 
