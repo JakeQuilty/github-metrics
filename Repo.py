@@ -191,37 +191,19 @@ class Repo:
 
         return dif.seconds
 
-#avg time to final resolution
-    def avg_time_final_res(self, created_times, closed_times):
+#returns avg time in hours of two lists of times
+    def avg_time(self, created_times, stopped_times):
         count = None
         num_of_times = 0
         for x in range(len(created_times)):
-            if len(closed_times) > 0:
-                if closed_times[x] is None:    #does not count open prs
+            if len(stopped_times) > 0:
+                if stopped_times[x] is None:    #does not count open prs
                         continue
             if count is None:
-                count = self.time_difference(created_times[x], closed_times[x])
+                count = self.time_difference(created_times[x], stopped_times[x])
                 num_of_times += 1
             else:
-                count += self.time_difference(created_times[x], closed_times[x])
-                num_of_times += 1
-        if count == None:
-            return None
-        return (count / num_of_times)/3600 ##seconds to hours
-
-#average time to first comment                                                          <---- these two are litterally the same thing. fix that
-    def avg_time_first_response(self, created_times, response_times):
-        count = None
-        num_of_times = 0
-        for x in range(len(created_times)):
-            if len(response_times) > 0:
-                if response_times[x] is None:
-                        continue
-            if count is None:
-                count = self.time_difference(created_times[x], response_times[x])
-                num_of_times += 1
-            else:
-                count += self.time_difference(created_times[x], response_times[x])
+                count += self.time_difference(created_times[x], stopped_times[x])
                 num_of_times += 1
         if count == None:
             return None
@@ -264,8 +246,8 @@ class Repo:
             'closedPR': self.pr_closed_states,
             'openPR': self.pr_open_states,
             'lastSixMonthPR': self.format_last_six_months_by_month(self.pr_six_months_count),
-            'avgTimeToFirstResponsePR': self.avg_time_first_response(self.pr_created_times, self.pr_closed_times),
-            'avgTimeToResolutionPR': self.avg_time_final_res(self.pr_created_times, self.pr_first_response_times),
+            'avgTimeToFirstResponsePR': self.avg_time(self.pr_created_times, self.pr_closed_times),
+            'avgTimeToResolutionPR': self.avg_time(self.pr_created_times, self.pr_first_response_times),
             'allPRAuthors': self.format_contributor_list(self.pr_unique_contr,self.pr_unique_contr_count),
             'inOrgPRAuthors': self.format_contributor_list(self.pr_in_org_contr, self.pr_in_org_contr_count),
             'outOrgContributorsPR': self.format_contributor_list(self.pr_out_org_contr, self.pr_out_org_contr_count),
@@ -273,8 +255,8 @@ class Repo:
             'closedIssue': self.issue_closed_states,
             'openIssue': self.issue_open_states,
             'lastSixMonthIssue': self.format_last_six_months_by_month(self.issue_six_months_count),
-            'avgTimeToFirstResponseIssue': self.avg_time_first_response(self.issue_created_times, self.issue_closed_times),
-            'avgTimeToResolutionIssue': self.avg_time_final_res(self.issue_created_times, self.issue_first_response_times),
+            'avgTimeToFirstResponseIssue': self.avg_time(self.issue_created_times, self.issue_closed_times),
+            'avgTimeToResolutionIssue': self.avg_time(self.issue_created_times, self.issue_first_response_times),
             'allIssueAuthors': self.format_contributor_list(self.issue_unique_contr,self.issue_unique_contr_count),
             'inOrgIssueAuthors': self.format_contributor_list(self.issue_in_org_contr, self.issue_in_org_contr_count),
             'outOrgIssueAuthors': self.format_contributor_list(self.issue_out_org_contr, self.issue_out_org_contr_count)
