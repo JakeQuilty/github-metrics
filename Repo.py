@@ -18,8 +18,19 @@ class Repo:
         self.org_name = org_name
         self.org_members = org_members
 
+        #get repo comments
+        comments_url = "https://api.github.com/repos/"+ org_name + "/" + issue_name +"/issues/comments?state=all&per_page=100&page=1"
+        comments_response = requests.get(comments_url, auth=(self.USER, self.AUTH_TOKEN))
+        self.raw_comments = json.loads(comments_response.text)
+        while 'next' in comments_response.links.keys():
+            comments_response = requests.get(comments_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            self.raw_comments.extend(json.loads(comments_response.text))
+
+        self.curr_comment_index = 0
+        self.raw_comments.reverse()
+
         #Get lists of pull requests and issues
-        issue_url = "https://api.github.com/repos/"+ org_name + "/" + issue_name +"/issues?state=all&page=1"
+        issue_url = "https://api.github.com/repos/"+ org_name + "/" + issue_name + "/issues?state=all&per_page=100&page=1"
         issue_response = requests.get(issue_url, auth=(self.USER, self.AUTH_TOKEN))
         raw_issues = json.loads(issue_response.text)
         while 'next' in issue_response.links.keys():
@@ -78,7 +89,7 @@ class Repo:
         for pr in prlist:
             self.pr_created_times.append(pr.get_creation_time())
             self.pr_closed_times.append(pr.get_closed_time())
-            self.pr_first_response_times.append(pr.get_first_response_time())   ############
+            self.pr_first_response_times.append(self.first_comment(pr.get_url()))   ############
             if pr.get_state() == "closed":  #get state
                 self.pr_closed_states+=1
             else:
@@ -108,7 +119,7 @@ class Repo:
         for issue in issue_list:
             self.issue_created_times.append(issue.get_creation_time())
             self.issue_closed_times.append(issue.get_closed_time())
-            self.issue_first_response_times.append(issue.get_first_response_time()) ##############
+            self.issue_first_response_times.append(self.first_comment(issue.get_url())) ##############
             if issue.get_state() == "closed":  #get state
                 self.issue_closed_states+=1
             else:
@@ -134,13 +145,22 @@ class Repo:
                         self.issue_six_months_count[self.six_months.index(date)] += 1
                         break
 
+#returns time of first comment
+    def first_comment(self, issue_url):
+#could speed up by keeping track of where you are in the comment list when you find the match and starting from there next time, instead of
+#traversing whole list every time
+        for index in range(len(self.raw_comments)):
+            curr_comment_url = self.raw_comments[index]['issue_url']
+            if  curr_comment_url == issue_url: 
+                try:
+                    return datetime.datetime.strptime(self.raw_comments[index]["created_at"], "%Y-%m-%dT%H:%M:%SZ")
+                except KeyError:
+                    return None
+        return None
 
 #returns true or false if the author is a member or the current organization
     def author_in_org(self, author):
-        if author in self.org_members:
-            return True
-        return False
-
+        return author in self.org_members
 
 #Updates parallel lists of contributors and their # of contributions
     def contributors(self,curr_contr,contr_list, contr_count):
@@ -172,37 +192,19 @@ class Repo:
 
         return dif.seconds
 
-#avg time to final resolution
-    def avg_time_final_res(self, created_times, closed_times):
+#returns avg time in hours of two lists of times
+    def avg_time(self, created_times, stopped_times):
         count = None
         num_of_times = 0
         for x in range(len(created_times)):
-            if len(closed_times) > 0:
-                if closed_times[x] is None:    #does not count open prs
+            if len(stopped_times) > 0:
+                if stopped_times[x] is None:    #does not count open prs
                         continue
             if count is None:
-                count = self.time_difference(created_times[x], closed_times[x])
+                count = self.time_difference(created_times[x], stopped_times[x])
                 num_of_times += 1
             else:
-                count += self.time_difference(created_times[x], closed_times[x])
-                num_of_times += 1
-        if count == None:
-            return None
-        return (count / len(closed_times))/3600 ##seconds to hours
-
-#average time to first comment                                                          <---- these two are litterally the same thing. fix that
-    def avg_time_first_response(self, created_times, response_times):
-        count = None
-        num_of_times = 0
-        for x in range(len(created_times)):
-            if len(response_times) > 0:
-                if response_times[x] is None:
-                        continue
-            if count is None:
-                count = self.time_difference(created_times[x], response_times[x])
-                num_of_times += 1
-            else:
-                count += self.time_difference(created_times[x], response_times[x])
+                count += self.time_difference(created_times[x], stopped_times[x])
                 num_of_times += 1
         if count == None:
             return None
@@ -245,8 +247,8 @@ class Repo:
             'closedPR': self.pr_closed_states,
             'openPR': self.pr_open_states,
             'lastSixMonthPR': self.format_last_six_months_by_month(self.pr_six_months_count),
-            'avgTimeToFirstResponsePR': self.avg_time_first_response(self.pr_created_times, self.pr_closed_times),
-            'avgTimeToResolutionPR': self.avg_time_final_res(self.pr_created_times, self.pr_first_response_times),
+            'avgTimeToFirstResponsePR': self.avg_time(self.pr_created_times, self.pr_closed_times),
+            'avgTimeToResolutionPR': self.avg_time(self.pr_created_times, self.pr_first_response_times),
             'allPRAuthors': self.format_contributor_list(self.pr_unique_contr,self.pr_unique_contr_count),
             'inOrgPRAuthors': self.format_contributor_list(self.pr_in_org_contr, self.pr_in_org_contr_count),
             'outOrgContributorsPR': self.format_contributor_list(self.pr_out_org_contr, self.pr_out_org_contr_count),
@@ -254,8 +256,8 @@ class Repo:
             'closedIssue': self.issue_closed_states,
             'openIssue': self.issue_open_states,
             'lastSixMonthIssue': self.format_last_six_months_by_month(self.issue_six_months_count),
-            'avgTimeToFirstResponseIssue': self.avg_time_first_response(self.issue_created_times, self.issue_closed_times),
-            'avgTimeToResolutionIssue': self.avg_time_final_res(self.issue_created_times, self.issue_first_response_times),
+            'avgTimeToFirstResponseIssue': self.avg_time(self.issue_created_times, self.issue_closed_times),
+            'avgTimeToResolutionIssue': self.avg_time(self.issue_created_times, self.issue_first_response_times),
             'allIssueAuthors': self.format_contributor_list(self.issue_unique_contr,self.issue_unique_contr_count),
             'inOrgIssueAuthors': self.format_contributor_list(self.issue_in_org_contr, self.issue_in_org_contr_count),
             'outOrgIssueAuthors': self.format_contributor_list(self.issue_out_org_contr, self.issue_out_org_contr_count)
