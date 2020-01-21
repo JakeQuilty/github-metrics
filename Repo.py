@@ -147,8 +147,6 @@ class Repo:
 #could speed up by keeping track of where you are in the comment list when you find the match and starting from there next time, instead of
 #traversing whole list every time
         for index in range(len(self.raw_comments)):
-            issue_id = issue_url.split('/')
-            issue_id = issue_id[7]
             curr_comment_url = self.raw_comments[index]['issue_url']
             if  curr_comment_url == issue_url: 
                 try:
