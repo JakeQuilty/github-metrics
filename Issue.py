@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import datetime
 import json
 import requests
+
 class Issue:
     def __init__(self,raw_json, USER, AUTH_TOKEN):
         self.raw_json = raw_json

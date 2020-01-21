@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import json
 import requests
 import os
+
 from Repo import Repo
+
 class Org:
     def __init__(self, org_name):
         self.name = org_name
