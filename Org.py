@@ -14,6 +14,9 @@ class Org:
         self.USER = os.getenv('GITHUB_USERNAME')
         self.AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN')
 
+        if not self.USER or not self.AUTH_TOKEN:
+            raise Exception("ERROR: GITHUB_USERNAME or GITHUB_AUTH_TOKEN not provided!")
+
         self.url = "https://api.github.com/search/repositories?q=org:" + org_name + "+archived:false+is:public&per_page=100&page=1"
 
         response = requests.get(self.url, auth=(self.USER, self.AUTH_TOKEN))
