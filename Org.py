@@ -22,6 +22,9 @@ class Org:
 
         response = requests.get(Org.REPO_URL.format(org_name=self.name), auth=(self.USER, self.AUTH_TOKEN))
 
+        # Raise errors if the request for repos failed
+        response.raise_for_status()
+
         self.raw_repos = json.loads(response.text)
 
         while 'next' in response.links.keys():
