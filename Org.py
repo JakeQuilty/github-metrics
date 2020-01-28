@@ -7,13 +7,26 @@ import os
 from Repo import Repo
 
 class Org:
+    REPO_URL = "https://api.github.com/search/repositories?q=org:{org_name}+archived:false+is:public&per_page=100&page=1"
+
     def __init__(self, org_name):
         self.name = org_name
-        self.USER = os.getenv('GITHUB_USERNAME')         #Have to auth to increase api limit from 60 -> 5000
+
+        # Have to auth to increase api limit from 60 -> 5000
+        self.USER = os.getenv('GITHUB_USERNAME')
         self.AUTH_TOKEN = os.getenv('GITHUB_AUTH_TOKEN')
-        self.url = "https://api.github.com/search/repositories?q=org:" + org_name + "+archived:false+is:public&per_page=100&page=1"
-        response = requests.get(self.url, auth=(self.USER, self.AUTH_TOKEN))
+
+        if not self.USER or not self.AUTH_TOKEN:
+            raise Exception("ERROR: GITHUB_USERNAME or GITHUB_AUTH_TOKEN not provided!")
+
+
+        response = requests.get(Org.REPO_URL.format(org_name=self.name), auth=(self.USER, self.AUTH_TOKEN))
+
+        # Raise errors if the request for repos failed
+        response.raise_for_status()
+
         self.raw_repos = json.loads(response.text)
+
         while 'next' in response.links.keys():
             response = requests.get(response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
             self.raw_repos.extend(json.loads(response.text))
@@ -21,6 +34,7 @@ class Org:
         members_url = "https://api.github.com/orgs/"+ org_name +"/members?per_page=100&page=1"
         response = requests.get(members_url, auth=(self.USER, self.AUTH_TOKEN))
         org_members = json.loads(response.text)
+
         while 'next' in response.links.keys():
             response = requests.get(response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
             org_members.extend(json.loads(response.text))
@@ -32,25 +46,29 @@ class Org:
         self.closed_states = 0
         self.find_states()
 
-    #Make list of repo objects
+    # Make list of repo objects
     def make_repo_list(self):
         to_return = []
         for x in range(self.raw_repos['total_count']):
             to_return.append(Repo(self.name, self.raw_repos['items'][x]['name'], self.USER, self.AUTH_TOKEN, self.members))
         return to_return
-#make string list of org members
+
+    # Make string list of org members
     def make_member_list(self, members):
         to_return = []
         for member in members:
             to_return.append(member['login'])
         return to_return
-#return list of repo objects
+
+    # Return list of repo objects
     def get_repos(self):
         return self.repo_list
-#return number of repos
+
+    # Return number of repos
     def get_num_repos(self):
         return len(self.repo_list)
-#finds states
+
+    # Finds states
     def find_states(self):
         self.open_states = 0
         self.closed_states = 0
@@ -79,15 +97,13 @@ class Org:
             'closedPR': self.get_closed(),
             'openPR': self.get_open()
         }
+
+        # TODO: Simplify this - lots of unnecessary work here
         x = 0
         for repo in self.repo_list:
             org_data[x] = repo.export()
             x+=1
 
-    
         file_name = self.name + ".json"
         with open(file_name, 'w') as outfile:
             json.dump(org_data, outfile)
-
-
-            
