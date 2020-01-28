@@ -6,7 +6,6 @@ import os
 import datetime
 import time
 
-#from PullRequest import PullRequest
 from Issue import Issue
 
 class Repo:
@@ -41,7 +40,6 @@ class Repo:
         self.issue_list = []
         self.sort_lists(raw_issues)
 
-        now = time.localtime()
         self.six_months = [time.localtime(time.mktime((time.localtime().tm_year, time.localtime().tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(6)]
         self.issue_name = issue_name
 
@@ -89,7 +87,7 @@ class Repo:
         for pr in prlist:
             self.pr_created_times.append(pr.get_creation_time())
             self.pr_closed_times.append(pr.get_closed_time())
-            self.pr_first_response_times.append(self.first_comment(pr.get_url()))   ############
+            self.pr_first_response_times.append(self.first_comment(pr.get_url()))
             if pr.get_state() == "closed":  #get state
                 self.pr_closed_states+=1
             else:
@@ -119,7 +117,7 @@ class Repo:
         for issue in issue_list:
             self.issue_created_times.append(issue.get_creation_time())
             self.issue_closed_times.append(issue.get_closed_time())
-            self.issue_first_response_times.append(self.first_comment(issue.get_url())) ##############
+            self.issue_first_response_times.append(self.first_comment(issue.get_url()))
             if issue.get_state() == "closed":  #get state
                 self.issue_closed_states+=1
             else:
@@ -188,7 +186,6 @@ class Repo:
 #find difference in time
     def time_difference(self, first, second):
         dif = second - first
-        # hours = (dif.seconds/60)/60
 
         return dif.seconds
 
