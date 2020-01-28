@@ -20,10 +20,15 @@ class Repo:
         # Get repo comments
         comments_response = requests.get(Repo.COMMENTS_URL.format(org_name=org_name, issue_name=issue_name), auth=(self.USER, self.AUTH_TOKEN))
 
+        # Raise errors if the request failed
+        comments_response.raise_for_status()
+
         self.raw_comments = json.loads(comments_response.text)
 
         while 'next' in comments_response.links.keys():
             comments_response = requests.get(comments_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            comments_response.raise_for_status()
+
             self.raw_comments.extend(json.loads(comments_response.text))
 
         self.curr_comment_index = 0
@@ -36,6 +41,8 @@ class Repo:
         raw_issues = json.loads(issue_response.text)
         while 'next' in issue_response.links.keys():
             issue_response = requests.get(issue_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
+            issue_response.raise_for_status()
+
             raw_issues.extend(json.loads(issue_response.text))
 
         self.pr_list = []
