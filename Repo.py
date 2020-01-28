@@ -9,6 +9,7 @@ import time
 from Issue import Issue
 
 class Repo:
+    COMMENTS_URL = "https://api.github.com/repos/{org_name}/{issue_name}/issues/comments?state=all&per_page=100&page=1"
 
 
     def __init__(self,org_name, issue_name, USER, AUTH_TOKEN, org_members):
@@ -17,9 +18,9 @@ class Repo:
         self.org_name = org_name
         self.org_members = org_members
 
-        #get repo comments
-        comments_url = "https://api.github.com/repos/"+ org_name + "/" + issue_name +"/issues/comments?state=all&per_page=100&page=1"
-        comments_response = requests.get(comments_url, auth=(self.USER, self.AUTH_TOKEN))
+        # Get repo comments
+        comments_response = requests.get(Repo.COMMENTS_URL.format(org_name=org_name, issue_name=issue_name), auth=(self.USER, self.AUTH_TOKEN))
+
         self.raw_comments = json.loads(comments_response.text)
         while 'next' in comments_response.links.keys():
             comments_response = requests.get(comments_response.links['next']['url'], auth=(self.USER, self.AUTH_TOKEN))
