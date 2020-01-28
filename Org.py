@@ -7,6 +7,8 @@ import os
 from Repo import Repo
 
 class Org:
+    REPO_URL = "https://api.github.com/search/repositories?q=org:{org_name}+archived:false+is:public&per_page=100&page=1"
+
     def __init__(self, org_name):
         self.name = org_name
 
@@ -17,9 +19,9 @@ class Org:
         if not self.USER or not self.AUTH_TOKEN:
             raise Exception("ERROR: GITHUB_USERNAME or GITHUB_AUTH_TOKEN not provided!")
 
-        self.url = "https://api.github.com/search/repositories?q=org:" + org_name + "+archived:false+is:public&per_page=100&page=1"
 
-        response = requests.get(self.url, auth=(self.USER, self.AUTH_TOKEN))
+        response = requests.get(Org.REPO_URL.format(org_name=self.name), auth=(self.USER, self.AUTH_TOKEN))
+
         self.raw_repos = json.loads(response.text)
 
         while 'next' in response.links.keys():
