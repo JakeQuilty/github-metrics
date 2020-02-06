@@ -181,6 +181,10 @@ class Repo:
 
     # Returns true or false if the author is a member or the current organization
     def author_in_org(self, author):
+        # Uncomment to print log output listing the authors that are
+        # marked as "not in org"
+        #if author not in self.org_members:
+        #    print(author + " not in org...")
         return author in self.org_members
 
     # Updates parallel lists of contributors and their # of contributions
@@ -250,15 +254,18 @@ class Repo:
 
     # Format contributor data
     def format_contributor_list(self, contr_list, contr_count):
-        to_return = {
-            'topContributor': self.top_contributor(contr_list, contr_count),
-            'size': len(contr_list)
-        }
+        contributions = {}
         for  x in range(len(contr_list)):
-            to_return[x] = {
+            contributions[x] = {
                 'user': contr_list[x],
                 'number': contr_count[x]
             }
+        to_return = {
+            'topContributor': self.top_contributor(contr_list, contr_count),
+            'size': len(contr_list),
+            'contributions': contributions
+        }
+
         return to_return
 
     # Runs all the methods that fio the data and puts it into a dict
@@ -270,8 +277,8 @@ class Repo:
             'closedPR': self.pr_closed_states,
             'openPR': self.pr_open_states,
             'lastSixMonthPR': self.format_last_six_months_by_month(self.pr_six_months_count),
-            'avgTimeToFirstResponsePR': self.avg_time(self.pr_created_times, self.pr_closed_times),
-            'avgTimeToResolutionPR': self.avg_time(self.pr_created_times, self.pr_first_response_times),
+            'avgTimeToFirstResponsePR': self.avg_time(self.pr_created_times, self.pr_first_response_times),
+            'avgTimeToResolutionPR': self.avg_time(self.pr_created_times, self.pr_closed_times),
             'allPRAuthors': self.format_contributor_list(self.pr_unique_contr, self.pr_unique_contr_count),
             'inOrgPRAuthors': self.format_contributor_list(self.pr_in_org_contr, self.pr_in_org_contr_count),
             'outOrgContributorsPR': self.format_contributor_list(self.pr_out_org_contr, self.pr_out_org_contr_count),
@@ -279,8 +286,8 @@ class Repo:
             'closedIssue': self.issue_closed_states,
             'openIssue': self.issue_open_states,
             'lastSixMonthIssue': self.format_last_six_months_by_month(self.issue_six_months_count),
-            'avgTimeToFirstResponseIssue': self.avg_time(self.issue_created_times, self.issue_closed_times),
-            'avgTimeToResolutionIssue': self.avg_time(self.issue_created_times, self.issue_first_response_times),
+            'avgTimeToFirstResponseIssue': self.avg_time(self.issue_created_times, self.issue_first_response_times),
+            'avgTimeToResolutionIssue': self.avg_time(self.issue_created_times, self.issue_closed_times),
             'allIssueAuthors': self.format_contributor_list(self.issue_unique_contr, self.issue_unique_contr_count),
             'inOrgIssueAuthors': self.format_contributor_list(self.issue_in_org_contr, self.issue_in_org_contr_count),
             'outOrgIssueAuthors': self.format_contributor_list(self.issue_out_org_contr, self.issue_out_org_contr_count)

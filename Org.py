@@ -58,6 +58,7 @@ class Org:
         to_return = []
         for member in members:
             to_return.append(member['login'])
+
         return to_return
 
     # Return list of repo objects
@@ -92,17 +93,18 @@ class Org:
     ##################
 
     def export_json(self):
+        # TODO: Simplify this - lots of unnecessary work here
+        repos = {}
+        x = 0
+        for repo in self.repo_list:
+            repos[x] = repo.export()
+            x+=1
         org_data = {
+            'repos': repos,
             'totalRepos': self.get_num_repos(),
             'closedPR': self.get_closed(),
             'openPR': self.get_open()
         }
-
-        # TODO: Simplify this - lots of unnecessary work here
-        x = 0
-        for repo in self.repo_list:
-            org_data[x] = repo.export()
-            x+=1
 
         file_name = self.name + ".json"
         with open(file_name, 'w') as outfile:
